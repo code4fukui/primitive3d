@@ -13,8 +13,9 @@ canvas {
 import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
 
-const addTestMesh = (scene) => {
+const makeMeshSimple = () => {
   const geometry = new THREE.BufferGeometry();
+
   // 頂点座標
   const vertices = new Float32Array([
       -1.0,  1.0, 0.0,
@@ -23,15 +24,17 @@ const addTestMesh = (scene) => {
        1.0, -1.0, 0.0,
   ]);
   geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+
   // 頂点リンク順
   const index = new Uint32Array([
       0, 2, 1,
       1, 2, 3,
   ]);
   geometry.setIndex(new THREE.BufferAttribute(index, 1));
+
   const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-  const wireMesh = new THREE.Mesh(geometry, material);
-  scene.add(wireMesh);
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
 };
 
 onload = async () => {
@@ -57,7 +60,8 @@ onload = async () => {
   controls.enableDamping = true; // カメラコントローラーを滑らかに
   controls.dampingFactor = 0.2;
 
-  addTestMesh(scene);
+  const mesh = makeMeshSimple();
+  scene.add(mesh);
   
   const light0 = new THREE.AmbientLight(0xFFFFFF, 1.0);
   scene.add(light0);
