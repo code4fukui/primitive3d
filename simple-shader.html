@@ -56,6 +56,8 @@ const makeData = (sFar) => {
   //const n = 100 * 1000; // 100k
   const n = 1 * 1000 * 1000; // 1M
   //const n = 2 * 1000 * 1000; // 2M
+  //const n = 3 * 1000 * 1000; // 3M
+  //const n = 4 * 1000 * 1000; // 4M
   //const n = 1000;
   const far = .5;
   for (let i = 0; i < n; i++) {
@@ -155,8 +157,17 @@ const data = makeData(sFar);
 initBuffers(gl, data, sMatPerspective);
 
 const baseTime = new Date().getTime();
+let lastTime = 0;
+let nFrame = 0;
 const render = () => {
-  const time = (new Date().getTime() - baseTime) / 1000;
+  const now = new Date().getTime();
+  const time = (now - baseTime) / 1000;
+  if (nFrame++ == 60) {
+    const dt = now - lastTime;
+    console.log("fps", 60 * 1000 / dt);
+    nFrame = 0;
+    lastTime = now;
+  }
   gl.uniform1f(sTime, time);
   gl.uniform2fv(sResolution, [canvas.width, canvas.height]);
   gl.drawArrays(gl.POINTS, 0, data.length / 3);
