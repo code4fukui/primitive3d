@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>WebGL 100万パーティクルデモ - 1M perticles demo</title>
+<style>
+body {
+  margin: 0;
+}
+canvas {
+  display: block;
+  height: 100vh;
+  background-color: black;
+}
+</style>
+<script type="module">
+
+const initWebGL = () => {
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+  const gl = canvas.getContext("webgl");
+
+  const resizeCanvas = () => {
+    const ratio = window.devicePixelRatio;
+    canvas.width = window.innerWidth * ratio;
+    canvas.height = window.innerHeight * ratio;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  };
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+  return { gl, canvas };
+};
+
+const initShaders = (gl, v, f) => {
+  const p = gl.createProgram();
+  const vs = gl.createShader(gl.VERTEX_SHADER);
+  const fs = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(vs, v);
+  gl.shaderSource(fs, f);
+  gl.compileShader(vs);
+  gl.compileShader(fs);
+  console.log(gl.getShaderInfoLog(vs));
+  console.log(gl.getShaderInfoLog(fs));
+  gl.attachShader(p, vs);
+  gl.attachShader(p, fs);
+  gl.linkProgram(p);
+  gl.useProgram(p);
+  const sPosition = gl.getAttribLocation(p, "position");
+  const sMatPerspective = gl.getUniformLocation(p, "matPerspective");
+  const sTime = gl.getUniformLocation(p, "time");
+  const sFar = gl.getUniformLocation(p, "far");
+  const sResolution = gl.getUniformLocation(p, "resolution");
+  gl.enableVertexAttribArray(sPosition);
+  return { sMatPerspective, sTime, sResolution, sFar };
+};
+
+const makeData = (sFar) => {
+  const data = [];
+  //const n = 100 * 1000; // 100k
+  const n = 1 * 1000 * 1000; // 1M
+  //const n = 2 * 1000 * 1000; // 2M
+  //const n = 1000;
+  const far = .5;
+  for (let i = 0; i < n; i++) {
+    const th = Math.random() * 2 * Math.PI;
+    const r = Math.random() * 1;
+    const x = Math.cos(th) * r;
+    const y = Math.sin(th) * r;
+    const z = Math.random() * far - far;
+    data.push(x);
+    data.push(y);
+    data.push(z);
+  }
+  gl.uniform1f(sFar, far);
+  return data;
+};
+
+const setPerspective = (x, y) => {
+  //const aspect = canvas.height / canvas.width;
+  //const aspect = canvas.width / canvas.height;
+  const aspect = 1.0;
+  const fov = 80;
+  const far = 1000;
+  const near = 0.0;
+  const f = 1.0 / Math.tan(fov / 2);
+  const nf = 1 / (near - far);
+  const p1 = f / aspect;
+  const p2 = f;
+  const p3 = (far + near) * nf;
+  const p4 = (2 * far * near) * nf;
+  const matPerspective = [
+    p1,  0.0, 0.0, 0.0,
+    0.0, p2,  0.0, 0.0,
+    x,   y,   p3, -1.0,
+    0.0, 0.0, p4,  0.0,
+  ];
+  gl.uniformMatrix4fv(sMatPerspective, false, new Float32Array(matPerspective));
+};
+
+const initBuffers = (gl, data, sMatPerspective) => {
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  setPerspective(0, 0);
+};
+
+const { gl, canvas } = initWebGL();
+
+const vs = `
+attribute vec3 position;
+uniform mat4 matPerspective;
+uniform float time;
+uniform float far;
+varying vec4 vColor;
+
+void main() {
+  vec3 p = position;
+  //vColor = vec4(p.x + 0.5 + sin(time), p.y + 0.5, p.z/2.0 + 0.5, 1.0);
+  //vColor = vec4(0.0, 0.0, 0.0, 1.0); // black
+  vColor = vec4(1.0); // white
+  
+  p.z = mod(p.z + time * .5 + far, far) - far;
+  gl_Position = matPerspective * vec4(p.x, p.y, p.z, 1.0);
+  
+  //gl_PointSize = 5.0;
+  gl_PointSize = 1.0;
+  //gl_PointSize = 0.1 * ( 1.0 / length( gl_Position.xyz ) );
+  //gl_PointSize = 2.0 * ( 1.0 / length( gl_Position.xyz ) );
+}
+`;
+const fs = `
+precision mediump float;
+varying vec4 vColor;
+vec3 cLight = normalize(vec3(0.5, 0.5, 1.0));
+uniform vec2 resolution;
+
+void main() {
+  float radius = 0.5;
+  vec2 center = vec2(0.5, 0.5);
+  vec2 position = gl_PointCoord.xy - center;
+  float dist = distance(gl_PointCoord.xy, center);
+  float z = sqrt(radius * radius - position.x * position.x - position.y * position.y);
+  vec3 normal = normalize(vec3(position.x, position.y, z));
+  vec3 c = (normal + 1.0) / 2.0;
+
+  float diffuse = max(0.0, dot(normal, cLight));
+
+  if (dist < 0.5) {
+    gl_FragColor = vColor * vec4(vec3(diffuse), 1.0);
+  } else {
+    discard;
+  }
+}
+`;
+
+const { sMatPerspective, sTime, sResolution, sFar } = initShaders(gl, vs, fs);
+const data = makeData(sFar);
+initBuffers(gl, data, sMatPerspective);
+
+const baseTime = new Date().getTime();
+const render = () => {
+  const time = (new Date().getTime() - baseTime) / 1000;
+  gl.uniform1f(sTime, time);
+  gl.uniform2fv(sResolution, [canvas.width, canvas.height]);
+  gl.drawArrays(gl.POINTS, 0, data.length / 3);
+  gl.flush();
+  requestAnimationFrame(render);
+};
+render();
+
+document.body.onmousemove = document.body.touchmove = (e) => {
+  const x = -e.clientX / window.innerWidth + .5;
+  const y = e.clientY / window.innerHeight - .5;
+  setPerspective(x, y);
+};
+document.body.onmousedown = () => canvas.requestFullscreen();
+
+</script>
+</head>
+<body>
+</body>
+</html>
