@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Primitive 3D</title>
+<style>
+body {
+  margin: 0;
+}
+canvas {
+  display: block;
+  height: 100vh;
+}
+</style>
+<script type="module">
+import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
+import { makeMeshSkyGround } from "./makeMeshSkyGround.js";
+
+onload = async () => {
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  renderer.setSize(width, height);
+
+  // シーンを作成
+  const scene = new THREE.Scene();
+
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height);
+  camera.position.set(0, 1, 5);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; // カメラコントローラーを滑らかに
+  controls.dampingFactor = 0.2;
+
+  //const url = "https://code4fukui.github.io/vr-fukui/img/vr-sundome.jpg";
+  //const url = "./vr-sundome.jpg";
+  const url = "./vr-jig-sabae.jpg";
+  const mesh = makeMeshSkyGround(url);
+  scene.add(mesh);
+  
+  const light0 = new THREE.AmbientLight(0xFFFFFF, 1.0);
+  scene.add(light0);
+
+  // 平行光源を作成
+  const light = new THREE.DirectionalLight(0xFFFFFF, 1);
+  scene.add(light);
+  /*
+  // 照明を可視化するヘルパー
+  const lightHelper = new THREE.DirectionalLightHelper(light);
+  scene.add(lightHelper);
+  */
+  
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+  });
+};
+</script>
+</head>
+<body>
+</body>
+</html>
