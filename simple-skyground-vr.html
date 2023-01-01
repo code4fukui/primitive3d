@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Primitive 3D</title>
+<style>
+body {
+  margin: 0;
+}
+canvas {
+  display: block;
+  height: 100vh;
+}
+</style>
+<script type="module">
+import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
+import { makeMeshSkyGround } from "./makeMeshSkyGround.js";
+import { createWebVRButton } from "./createWebXRButton.js";
+import { fetchJSON } from "https://js.sabae.cc/fetchJSON.js";
+
+const send = (json) => {
+  fetchJSON("/api/", json);
+};
+
+let handright = null;
+let handleft = null;
+let bky = null;
+let timeout = 0;
+
+const handleInputSourceChange = ({ added, session }) => {
+  const tick = () => {
+    const sources = added.map((source) => {
+      const buttons = source.gamepad.buttons.map(({ pressed, touched, value }) => {
+        return {
+          pressed,
+          touched,
+          value
+        };
+      });
+      return {
+        gamepad: {
+          axes: source.gamepad.axes,
+          buttons
+        },
+        handedness: source.handedness
+      };
+    });
+    //console.log(sources);
+    //send(sources);
+    handright = sources.find(p => p.handedness == "right" && p.gamepad.buttons.length > 1);
+    handleft = sources.find(p => p.handedness == "left" && p.gamepad.buttons.length > 1);
+    session.requestAnimationFrame(tick);
+  };
+  session.requestAnimationFrame(tick);
+};
+
+onload = async () => {
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  //renderer.physicallyCorrectLights = true;
+  //renderer.outputEncoding = THREE.sRGBEncoding;
+  //renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  renderer.setSize(width, height);
+
+  // シーンを作成
+  const scene = new THREE.Scene();
+
+  // WebXRボタン
+  document.body.appendChild(createWebVRButton((session) => {
+    renderer.xr.enabled = true;
+		renderer.xr.setSession(session);
+    session.addEventListener("inputsourceschange", handleInputSourceChange);
+    //timeout = 3000 / 90;
+  }));
+
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height);
+  camera.position.set(0, 1, 5);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.2;
+
+  //const url = "https://code4fukui.github.io/vr-fukui/img/vr-sundome.jpg";
+  //const url = "./vr-sundome.jpg";
+  const url = "./vr-jig-sabae.jpg";
+  const mesh = makeMeshSkyGround(url);
+  scene.add(mesh);
+  
+  const light0 = new THREE.AmbientLight(0xFFFFFF, 1.0);
+  scene.add(light0);
+
+  // 平行光源を作成
+  const light = new THREE.DirectionalLight(0xFFFFFF, 1);
+  scene.add(light);
+  /*
+  // 照明を可視化するヘルパー
+  const lightHelper = new THREE.DirectionalLightHelper(light);
+  scene.add(lightHelper);
+  */
+  
+  let keyspc = false;
+  document.body.onkeydown = (e) => {
+    if (e.code == "Space") {
+      keyspc = true;
+    }
+  };
+  document.body.onkeyup = (e) => {
+    if (e.code == "Space") {
+      keyspc = false;
+    }
+  };
+  let vy = 0;
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    const y = camera.position.y;
+    //send({ bky, y });
+    const dy = bky === null ? 0 : y - bky;
+    bky = y;
+    const vrbtn = handright?.gamepad?.buttons[0]?.pressed;
+    //const jump = (keyspc || dy > .01 || vrbtn) && timeout == 0;
+    const jump = (keyspc || dy > .01 || vrbtn);
+    /*
+    if (timeout) {
+      timeout--;
+    }
+    */
+    //const jump = keyspc || vrbtn;
+    if (mesh.position.y == 0 && jump) {
+      vy = -4;
+    }
+    if (jump || mesh.position.y < 0) {
+      mesh.position.y += vy;
+      if (vy < 1) {
+        vy += 0.02;
+      }
+      if (mesh.position.y > 0) {
+        mesh.position.y = 0;
+        vy = 0;
+      }
+    }
+    renderer.render(scene, camera);
+  });
+};
+</script>
+</head>
+<body>
+</body>
+</html>

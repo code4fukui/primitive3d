@@ -5,7 +5,7 @@ const Vector3 = THREE.Vector3;
 const Float32BufferAttribute = THREE.Float32BufferAttribute;
 
 class SkyGroundGeometry extends BufferGeometry {
-	constructor(radius = 500, widthSegments = 128, heightSegments = 32, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI, ground = 0) {
+	constructor(radius = 800, widthSegments = 256, heightSegments = 32, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI, ground = 0) {
 		super();
 		this.type = 'SkyGroundGeometry';
 
