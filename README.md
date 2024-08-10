@@ -1,5 +1,6 @@
 # primitive3d
  
+- [シンプル3角ポリゴン](https://code4fukui.github.io/primitive3d/simple-triangle.html)
 - [はじめのいっぽ、シンプルポリゴン](https://code4fukui.github.io/primitive3d/simple-polygon.html)
 - [シェーダーで100万パーティクル](https://code4fukui.github.io/primitive3d/simple-shader.html)
 - [ジオメトリ生成テスト、シンプル球](https://code4fukui.github.io/primitive3d/simple-sphere.html)

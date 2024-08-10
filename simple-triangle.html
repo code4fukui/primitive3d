@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Primitive 3D</title>
+<style>
+body {
+  margin: 0;
+}
+canvas {
+  display: block;
+  height: 100vh;
+}
+</style>
+<script type="module">
+import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
+import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
+
+const makeMeshTriangle = () => {
+  const geometry = new THREE.BufferGeometry();
+
+  // 頂点座標
+  const vertices = new Float32Array([
+       0.0,  1.0, 0.0,
+      -1.0, -1.0, 0.0,
+       1.0, -1.0, 0.0,
+  ]);
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+
+  // 頂点リンク順
+  const index = new Uint32Array([
+      0, 1, 2,
+  ]);
+  geometry.setIndex(new THREE.BufferAttribute(index, 1));
+
+  const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+};
+
+onload = async () => {
+  const canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+
+  // レンダラーを作成
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  renderer.setSize(width, height);
+
+  // シーンを作成
+  const scene = new THREE.Scene();
+
+  // カメラを作成
+  const camera = new THREE.PerspectiveCamera(45, width / height);
+  camera.position.set(10, 10, 10);
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; // カメラコントローラーを滑らかに
+  controls.dampingFactor = 0.2;
+
+  const mesh = makeMeshTriangle();
+  scene.add(mesh);
+  
+  const light0 = new THREE.AmbientLight(0xFFFFFF, 1.0);
+  scene.add(light0);
+
+  // 平行光源を作成
+  const light = new THREE.DirectionalLight(0xFFFFFF, 1);
+  scene.add(light);
+  /*
+  // 照明を可視化するヘルパー
+  const lightHelper = new THREE.DirectionalLightHelper(light);
+  scene.add(lightHelper);
+  */
+  
+  renderer.setAnimationLoop(() => {
+    controls.update();
+    renderer.render(scene, camera);
+  });
+};
+</script>
+</head>
+<body>
+</body>
+</html>
